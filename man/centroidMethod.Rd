@@ -8,7 +8,15 @@ Estimate point estimates and standard errors.
 Estimate point estimates and standard errors from multiple data points reported in primary literature. This is particularly useful for backcalculating odds ratios and confidence intervals for meta-analysis. Although simple back-calculation methods exist, they do not always create estimates that are consistent with the reported values. For instance, consider the example of an odds ratio of 1.3, with a 95\% confidence interval of 1.1 to 1.7; the back calculation methods do not forward calculate the correct decimal places (see \code{"Examples"}). The current method creates a potential area of legal values and iteratively tests a series of discrete points for compliance with the rounding constraints; the centroid of the legal values is calculated, returning the point estimate and standard error.
 }
 \usage{
-centroidMethod(input, decimals = NULL, resolution = 250, type = "OR", distribution = "z", df = NULL, plot = F, ci = 95, p = NULL)
+centroidMethod(input, 
+               decimals = NULL, 
+               resolution = 250, 
+               type = "OR", 
+               distribution = "z", 
+               df = NULL, 
+               plot = FALSE, 
+               ci = 95, 
+               pInfo = NULL)
 }
 \arguments{
   \item{input}{
@@ -35,7 +43,7 @@ logical for whether to plot a figure that shows the possible standard error and 
   \item{ci}{
 an integer between 0 and 100 that specifies the confidence interval (e.g., 95\% confidence interval, which is the default, would be entered as 95).
 }
-  \item{p}{
+  \item{pInfo}{
 a vector of three values: the reported p-value, the number of decimal places, and the p-value function. For example, for a study that reported p<0.05, the data would be c(0.05,2,"<"); for a study that reported p=0.020, the data would be c(0.020,3,"==").
 }
 }
@@ -60,7 +68,7 @@ centroidMethod(input = c(1.3,1.1,1.7), #Odds ratio of 1.3, 95\% CI: 1.1, 1.7
                type = "OR", #Odds ratio
                distribution = "z", #assume z distribution
                df = NULL, #z distribution, so no df
-               plot = T, #plot the output
+               plot = TRUE, #plot the output
                ci = 95, #95\% CI
                p = NULL #No p-value reported
                ) 
@@ -71,7 +79,7 @@ centroidMethod(input = c(1.3,1.1,1.7), #Odds ratio of 1.3, 95\% CI: 1.1, 1.7
                type = "OR", #Odds ratio
                distribution = "z", #assume z distribution
                df = NULL, #z distribution, so no df
-               plot = T, #plot the output
+               plot = TRUE, #plot the output
                ci = 95, #95\% CI
                p = c(0.02,2,"<") #p-value reported as range
                )  
@@ -82,7 +90,7 @@ centroidMethod(input = c(1.3,1.1,1.7), #Odds ratio of 1.3, 95\% CI: 1.1, 1.7
                type = "OR", #Odds ratio
                distribution = "z", #assume z distribution
                df = NULL, #z distribution, so no df
-               plot = T, #plot the output
+               plot = TRUE, #plot the output
                ci = 95, #95\% CI
                p = c(0.011,3,"==") #p-value reported rounded to 3 decimals
                )       

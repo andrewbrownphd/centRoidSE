@@ -1,68 +1,119 @@
-library(stringr)
-#create method to run through list of results?
-
-centroidMethod <- function(input,decimals=NULL,resolution=250,type="OR",distribution="z",df=NULL,plot=F,ci=95,p=NULL)
+#' @export centroidMethod
+centroidMethod <- function(input, 
+                           decimals=NULL, 
+                           resolution=250, 
+                           type="OR", 
+                           distribution="z",
+                           df=NULL, 
+                           plot=FALSE, 
+                           ci=95, 
+                           pInfo=NULL)
 {
-  #Check for legal values
-  #df can be added to 'input' or put in its own column, but must be specified for distribution=t
-  if(length(input) == 4 & !is.null(df)) stop("Four items entered for input and df also specified.")
-  #set df if input has four items
+  # Check for legal values
+  # df can be added to 'input' or put in its own column, 
+    #but must be specified for distribution=t
+  
+  if(length(input) == 4 & !is.null(df)) 
+    stop("Four items entered for input and df also specified.")
+  
+  # set df if input has four items
+  
   if(length(input) == 4) df <- input[4]
+  
   #make sure df is specified
-  if(is.null(df) & distribution=="t") stop("Degrees of freedom must be specified for t distribution.")
-  if(!(distribution %in% c("z","t"))) stop("Distribution must specify 'z' or 't'.")
+  
+  distribution <- tolower(distribution)
+  
+  if(is.null(df) & distribution=="t") 
+    stop("Degrees of freedom must be specified for t distribution.")
+  if(!(distribution %in% c("z","t"))) 
+    stop("Distribution must specify 'z' or 't'.")
+  
   #check to make sure type is appropriately specified
-  if(!(type %in% c("OR","log(OR)","beta","mean"))) stop("Type must be OR, log(OR), beta, or mean. Note: log(OR), beta, and mean produce the same calculations.")
+  
+  if(!(type %in% c("OR","log(OR)","beta","mean")))
+    stop(paste("Type must be \"OR\", \"log(OR)\", \"beta\", or \"mean\".",
+               "Note: \"log(OR)\", \"beta\", and \"mean\" produce the same calculations."))
+  
+  if(type=="OR" & distribution=="t")
+  {
+    warning("type=\"OR\" is incompatible with distribution=\"t\"; setting distribution= to \"z\"")
+    distribution <- "z"
+  }
+  
   #Process decimals
-  if(is.null(decimals)){
-    for (i in 1:3){
-      #Extract decimals if unspecified. Note that numbers entered with trailing zeroes will truncate unless entered as character
-      decimals[i] <- nchar(str_extract(input[i],"\\..+"))-1
+  
+  if(is.null(decimals))
+  {
+    for (i in 1:3)
+    {
+      # Extract decimals if unspecified. Note that numbers entered with trailing zeroes will truncate
+      # unless entered as character
+      decimals[i] <- nchar(stringr::str_extract(input[i],"\\..+"))-1 #
     }
   } else {
-    #If only one decimal is specified, then enter it in the vector for each of three elements
+    # If only one decimal is specified, then enter it in the vector for each of three elements
     if(length(decimals) == 1) decimals <- c(decimals,decimals,decimals)
   }
-  if(decimals[1] != decimals[2] | decimals[2] != decimals[3]) warning(paste("Unequal decimals extracted for input: ",paste(input,collapse=",")))
+  if(decimals[1] != decimals[2] | decimals[2] != decimals[3])
+    warning(paste("Unequal decimals extracted for input: ",paste(input,collapse=",")))
+  
   #Convert input to numeric incase entered as character
+  
   input <- as.numeric(input)
+  sumna <- function(a) { return(sum(is.na(a))) }
+  if(sumna(input) > 0)
+    stop("Unable to convert inputs into numbers; check input for numeric values.")
+  
   #Calculate SE from lower and upper CIs
+  
   if(distribution=="z")
   {
     crit<-qnorm((100-(100-ci)/2)/100)
   }
+  
   if(distribution=="t")
   {
     crit<-qt((100-(100-ci)/2)/100,df=df)
   }
+  
   if(type == "OR")
   {
     l <- (log(input[1])-log(input[2]))/crit
     u <- (log(input[3])-log(input[1]))/crit    
+    
     #Sequence of possible log(OR)
+    
     thetas <- seq(log(input[1]-(5*10^(-1-decimals[1]))),
                   log(input[1]+(5*10^(-1-decimals[1]))),
                   length.out=resolution) # On log scale, search area
   }
+  
   if(type %in% c("log(OR)","mean","beta"))
   {
     l <- (input[1]-input[2])/crit
     u <- (input[3]-input[1])/crit
+    
     #Sequence of possible point estimates
+    
     thetas <- seq(input[1]-(5*10^(-1-decimals[1])),
                   input[1]+(5*10^(-1-decimals[1])),
                   length.out=resolution) # search area
   }
   
   #Sequence of possible SEs between low and high estimates from CI
-  if(round(l,digits=8) == round(u,digits=8)) stop(paste0("Lower and upper SE estimates are equal. Point estimate: ",
-                                                         sprintf(paste0("%.",decimals[1],"f"),input[1]),
-                                                         "; SE: ",l))
+  
+  if(round(l,digits=8) == round(u,digits=8))
+    stop(paste0("Lower and upper SE estimates are equal. Point estimate: ",
+                sprintf(paste0("%.",decimals[1],"f"),input[1]), "; SE: ",l))
+  
   SEs <- seq(min(l,u),max(l,u),length.out=resolution)  # SE for log OR, search area
   
   #Test matrix; 1 means satisfies all rounding criteria, 0 otherwise
+  
   mat <- matrix(0, resolution, resolution)
-  if(is.null(p) & distribution=="z")
+  
+  if(is.null(pInfo) & distribution=="z")
   {
     for(i in 1:resolution)
       for(j in 1:resolution)
@@ -77,7 +128,7 @@ centroidMethod <- function(input,decimals=NULL,resolution=250,type="OR",distribu
       }
   }
   
-  if(is.null(p) & distribution=="t")
+  if(is.null(pInfo) & distribution=="t")
   {
     for(i in 1:resolution)
       for(j in 1:resolution)
@@ -92,7 +143,7 @@ centroidMethod <- function(input,decimals=NULL,resolution=250,type="OR",distribu
       }
   }
   
-  if(!is.null(p) & distribution=="z")
+  if(!is.null(pInfo) & distribution=="z")
   {
     for(i in 1:resolution)
       for(j in 1:resolution)
@@ -107,13 +158,13 @@ centroidMethod <- function(input,decimals=NULL,resolution=250,type="OR",distribu
         if(x1==input[1] & x2==input[2] & x3==input[3])
         {
           #check p-value against p value operator
-          if(p[3] == "==" & get(p[3])(round(x4,as.numeric(p[2])),as.numeric(p[1]))) mat[i,j] <- 1 
-          if(p[3] %in% c("<",">") & get(p[3])(x4,as.numeric(p[1]))) mat[i,j] <- 1
+          if(pInfo[3] == "==" & get(pInfo[3])(round(x4,as.numeric(pInfo[2])),as.numeric(pInfo[1]))) mat[i,j] <- 1 
+          if(pInfo[3] %in% c("<",">") & get(pInfo[3])(x4,as.numeric(pInfo[1]))) mat[i,j] <- 1
         }
       }
   }
   
-  if(!is.null(p) & distribution=="t")
+  if(!is.null(pInfo) & distribution=="t")
   {
     for(i in 1:resolution)
       for(j in 1:resolution)
@@ -128,8 +179,8 @@ centroidMethod <- function(input,decimals=NULL,resolution=250,type="OR",distribu
         if(x1==input[1] & x2==input[2] & x3==input[3])
         {
           #check p-value against p value operator
-          if(p[3] == "==" & get(p[3])(round(x4,as.numeric(p[2])),as.numeric(p[1]))) mat[i,j] <- 1 
-          if(p[3] %in% c("<",">") & get(p[3])(x4,as.numeric(p[1]))) mat[i,j] <- 1
+          if(pInfo[3] == "==" & get(pInfo[3])(round(x4,as.numeric(pInfo[2])),as.numeric(pInfo[1]))) mat[i,j] <- 1 
+          if(pInfo[3] %in% c("<",">") & get(pInfo[3])(x4,as.numeric(pInfo[1]))) mat[i,j] <- 1
         }
       }
   }
@@ -146,9 +197,9 @@ centroidMethod <- function(input,decimals=NULL,resolution=250,type="OR",distribu
         onepoints[k,] <- c(thetas[i], SEs[j])
       }
     }
-  centroid <- apply(onepoints,2,mean)
+  centroid <- apply(onepoints,2,mean) # Might be a way to make this more efficient, but this is simplest
   
-  if(plot==T)
+  if(plot)
   {
     if(type=="OR")
     {
@@ -183,13 +234,15 @@ centroidMethod <- function(input,decimals=NULL,resolution=250,type="OR",distribu
     }
   }
   #
-  centroid <- as.data.frame(t(centroid))
   if(type=="OR") 
   {
-    colnames(centroid) <- c("log(OR)","SE")
+    names(centroid) <- c("log(OR)","SE")
   } else {
-    colnames(centroid) <- c(type,"SE")
+    names(centroid) <- c(type,"SE")
   }
+  
+  if(sumna(centroid)==2) # Both NaNs
+    message(noquote("There is no pair of values that satisfies the given constraints; check input."))
   return(centroid)
 }
-
+#

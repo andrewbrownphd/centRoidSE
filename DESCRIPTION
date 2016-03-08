@@ -1,9 +1,14 @@
 Package: centRoidSE
 Type: Package
-Title: Method to calculate standard errors and effect sizes from multiple reported values.
-Version: 1.0
-Date: 2015-12-18
+Title: Method to calculate standard errors and effect sizes from multiple
+    reported values.
+Description: Method to calculate standard errors and effect sizes from multiple
+    reported values.
+Version: 0.11
+Date: 2016-03-08
 Author: Andrew W Brown
 Maintainer: Andrew W Brown <awbrown@uab.edu>
-Depends: stringr
 License: MIT
+Imports:
+    stringr
+RoxygenNote: 5.0.1
