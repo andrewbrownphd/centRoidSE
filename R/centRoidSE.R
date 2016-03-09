@@ -104,7 +104,7 @@ centroidMethod <- function(input,
   #Sequence of possible SEs between low and high estimates from CI
   
   if(round(l,digits=8) == round(u,digits=8))
-    stop(paste0("Lower and upper SE estimates are equal. Point estimate: ",
+    warning(paste0("Lower and upper SE estimates are equal. Point estimate: ",
                 sprintf(paste0("%.",decimals[1],"f"),input[1]), "; SE: ",l))
   
   SEs <- seq(min(l,u),max(l,u),length.out=resolution)  # SE for log OR, search area
