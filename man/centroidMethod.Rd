@@ -70,7 +70,7 @@ centroidMethod(input = c(1.3,1.1,1.7), #Odds ratio of 1.3, 95\% CI: 1.1, 1.7
                df = NULL, #z distribution, so no df
                plot = TRUE, #plot the output
                ci = 95, #95\% CI
-               p = NULL #No p-value reported
+               pInfo = NULL #No p-value reported
                ) 
                
 centroidMethod(input = c(1.3,1.1,1.7), #Odds ratio of 1.3, 95\% CI: 1.1, 1.7
@@ -81,7 +81,7 @@ centroidMethod(input = c(1.3,1.1,1.7), #Odds ratio of 1.3, 95\% CI: 1.1, 1.7
                df = NULL, #z distribution, so no df
                plot = TRUE, #plot the output
                ci = 95, #95\% CI
-               p = c(0.02,2,"<") #p-value reported as range
+               pInfo = c(0.02,2,"<") #p-value reported as range
                )  
                
 centroidMethod(input = c(1.3,1.1,1.7), #Odds ratio of 1.3, 95\% CI: 1.1, 1.7
@@ -92,7 +92,7 @@ centroidMethod(input = c(1.3,1.1,1.7), #Odds ratio of 1.3, 95\% CI: 1.1, 1.7
                df = NULL, #z distribution, so no df
                plot = TRUE, #plot the output
                ci = 95, #95\% CI
-               p = c(0.011,3,"==") #p-value reported rounded to 3 decimals
+               pInfo = c(0.011,3,"==") #p-value reported rounded to 3 decimals
                )       
                
 }
