@@ -82,11 +82,11 @@ centroidMethod <- function(input,
     l <- (log(input[1])-log(input[2]))/crit
     u <- (log(input[3])-log(input[1]))/crit    
     
-    #Sequence of possible log(OR)
+    #Sequence of possible log(OR), starting from sequence on OR scale 
     
-    thetas <- seq(log(input[1]-(5*10^(-1-decimals[1]))),
-                  log(input[1]+(5*10^(-1-decimals[1]))),
-                  length.out=resolution) # On log scale, search area
+    thetas <- seq(input[1] - (5 * 10^(-1 - decimals[1])),
+                  input[1] + (5 * 10^(-1 - decimals[1])), length.out = resolution)
+    thetas <- log(thetas) # On log scale, search area
   }
   
   if(type %in% c("log(OR)","mean","beta"))
