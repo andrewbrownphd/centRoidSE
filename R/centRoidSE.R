@@ -9,6 +9,10 @@ centroidMethod <- function(input,
                            ci=95, 
                            pInfo=NULL)
 {
+  str_extract2 <- function(x) {
+    hee <- (strsplit(as.character(x), split=".", fixed=T))[[1]][2]
+    return(ifelse(is.na(hee), NA, paste(".",hee,sep="")))
+  }
   # Check for legal values
   # df can be added to 'input' or put in its own column, 
     #but must be specified for distribution=t
@@ -18,7 +22,7 @@ centroidMethod <- function(input,
   
   # set df if input has four items
   
-  if(length(input) == 4) df <- input[4]
+  if(length(input) == 4) df <- as.numeric(input[4])
   
   #make sure df is specified
   
@@ -49,7 +53,7 @@ centroidMethod <- function(input,
     {
       # Extract decimals if unspecified. Note that numbers entered with trailing zeroes will truncate
       # unless entered as character
-      decimals[i] <- nchar(stringr::str_extract(input[i],"\\..+"))-1 #
+      decimals[i] <- nchar(str_extract2(input[i]))-1 #
     }
   } else {
     # If only one decimal is specified, then enter it in the vector for each of three elements
