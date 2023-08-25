@@ -9,13 +9,10 @@ centroidMethod <- function(input,
                            ci=95, 
                            pInfo=NULL)
 {
-  str_extract2 <- function(x) {
-    hee <- (strsplit(as.character(x), split=".", fixed=T))[[1]][2]
-    return(ifelse(is.na(hee), NA, paste(".",hee,sep="")))
-  }
+  
   # Check for legal values
   # df can be added to 'input' or put in its own column, 
-    #but must be specified for distribution=t
+  # but must be specified for distribution=t
   
   if(length(input) == 4 & !is.null(df)) 
     stop("Four items entered for input and df also specified.")
@@ -53,7 +50,16 @@ centroidMethod <- function(input,
     {
       # Extract decimals if unspecified. Note that numbers entered with trailing zeroes will truncate
       # unless entered as character
-      decimals[i] <- nchar(str_extract2(input[i]))-1 #
+      decimals[i] <- nchar(strsplit(as.character(input[i]), 
+                                    split=".", fixed=T)[[1]][2]) #
+      if(is.na(decimals[i])){
+        warning(paste("Extracting decimals from input value",
+                      i,
+                      "resulted in an NA. This may occur if the input has no decimal places",
+                      "(e.g., an OR input as '1' instead of '1.0') or if the value is an integer.",
+                      "Setting the decimal for that input value to zero."))
+        decimals[i] <- 0
+      }
     }
   } else {
     # If only one decimal is specified, then enter it in the vector for each of three elements
@@ -62,7 +68,7 @@ centroidMethod <- function(input,
   if(decimals[1] != decimals[2] | decimals[2] != decimals[3])
     warning(paste("Unequal decimals extracted for input: ",paste(input,collapse=",")))
   
-  #Convert input to numeric incase entered as character
+  #Convert input to numeric in case entered as character
   
   input <- as.numeric(input)
   sumna <- function(a) { return(sum(is.na(a))) }
@@ -83,23 +89,44 @@ centroidMethod <- function(input,
   
   if(type == "OR")
   {
-    l <- (log(input[1])-log(input[2]))/crit
-    u <- (log(input[3])-log(input[1]))/crit    
+    #gets four most extreme rounding combinations, but may make impossible SEs
+    ll <- (log(input[1] + (5*10^(-1-decimals[1]))) #increase OR
+           - log(input[2] - (5*10^(-1-decimals[2])))) /crit #decrease LCL
+    uu <- (log(input[3] + (5*10^(-1-decimals[3]))) #increase UCL
+           - log(input[1] - (5*10^(-1-decimals[1]))))/crit #decrease OR
+    lu <- (log(input[1] - (5*10^(-1-decimals[1]))) #decrease OR
+           - log(input[2] + (5*10^(-1-decimals[2])))) /crit #increase LCL
+    ul <- (log(input[3] - (5*10^(-1-decimals[3]))) #decrease UCL
+           - log(input[1] + (5*10^(-1-decimals[1]))))/crit #increase OR
     
-    #Sequence of possible log(OR), starting from sequence on OR scale 
+    l <- min(ll, uu, lu, ul)
     
-    thetas <- seq(input[1] - (5 * 10^(-1 - decimals[1])),
-                  input[1] + (5 * 10^(-1 - decimals[1])), length.out = resolution)
-    thetas <- log(thetas) # On log scale, search area
+    # this bounds SE to be >= 0
+    l <- ifelse(l < 0, 0, l)
+    u <- max(ll, uu, lu, ul)
+    
+    SE_l <- (log(input[1])-log(input[2]))/crit #backcalc SE from LCL
+    SE_u <- (log(input[3])-log(input[1]))/crit #backcalc SE from UCL
+    
+    #Sequence of possible log(OR)
+    thetas <- seq(input[1]-(5*10^(-1-decimals[1])),
+                  input[1]+(5*10^(-1-decimals[1])),
+                  length.out=resolution) 
+    thetas <- log(thetas) #on log scale, search area
   }
   
   if(type %in% c("log(OR)","mean","beta"))
   {
-    l <- (input[1]-input[2])/crit
-    u <- (input[3]-input[1])/crit
+    
+    # Back calc SE from LCL and UCL 
+    SE_l <- (input[1]-input[2])/crit
+    SE_u <- (input[3]-input[1])/crit
+    
+    #set l to min and u to max of the two SE estimates
+    l <- min(SE_l, SE_u)
+    u <- max(SE_l, SE_u)
     
     #Sequence of possible point estimates
-    
     thetas <- seq(input[1]-(5*10^(-1-decimals[1])),
                   input[1]+(5*10^(-1-decimals[1])),
                   length.out=resolution) # search area
@@ -107,20 +134,20 @@ centroidMethod <- function(input,
   
   #Sequence of possible SEs between low and high estimates from CI
   
-  if(round(l,digits=8) == round(u,digits=8))
+  if(round(SE_l,digits=8) == round(SE_u,digits=8))
     warning(paste0("Lower and upper SE estimates are equal. Point estimate: ",
-                sprintf(paste0("%.",decimals[1],"f"),input[1]), "; SE: ",l))
+                   sprintf(paste0("%.",decimals[1],"f"),input[1]), "; SE: ",SE_l))
   
-  SEs <- seq(min(l,u),max(l,u),length.out=resolution)  # SE for log OR, search area
+  SEs <- seq(l,u,length.out=resolution)  # SE for log OR, search area
   
   #Test matrix; 1 means satisfies all rounding criteria, 0 otherwise
   
-  mat <- matrix(0, resolution, resolution)
+  mat <- matrix(0, length(thetas), length(SEs))
   
   if(is.null(pInfo) & distribution=="z")
   {
-    for(i in 1:resolution)
-      for(j in 1:resolution)
+    for(i in 1:length(thetas))
+      for(j in 1:length(SEs))
       {
         pe <- thetas[i] ; se <- SEs[j]
         x1 <- round(exp(pe),decimals[1])
@@ -134,8 +161,8 @@ centroidMethod <- function(input,
   
   if(is.null(pInfo) & distribution=="t")
   {
-    for(i in 1:resolution)
-      for(j in 1:resolution)
+    for(i in 1:length(thetas))
+      for(j in 1:length(SEs))
       {
         pe <- thetas[i] ; se <- SEs[j]
         x1 <- round(pe,decimals[1])
@@ -149,8 +176,8 @@ centroidMethod <- function(input,
   
   if(!is.null(pInfo) & distribution=="z")
   {
-    for(i in 1:resolution)
-      for(j in 1:resolution)
+    for(i in 1:length(thetas))
+      for(j in 1:length(SEs))
       {
         pe <- thetas[i] ; se <- SEs[j]
         x1 <- round(exp(pe),decimals[1]) 
@@ -170,8 +197,8 @@ centroidMethod <- function(input,
   
   if(!is.null(pInfo) & distribution=="t")
   {
-    for(i in 1:resolution)
-      for(j in 1:resolution)
+    for(i in 1:length(thetas))
+      for(j in 1:length(SEs))
       {
         pe <- thetas[i] ; se <- SEs[j]
         x1 <- round(pe,decimals[1]) 
@@ -216,8 +243,8 @@ centroidMethod <- function(input,
             points(thetas[i], SEs[j], pch=".",col="gray")
       #
       points(centroid[1],centroid[2],pch=16,col=2)
-      points(log(input[1]),l,pch="L",col=4)
-      points(log(input[1]),u,pch="U",col=4)
+      points(log(input[1]),SE_l,pch="L",col=4)
+      points(log(input[1]),SE_u,pch="U",col=4)
       points(log(input[1]),mean(c(l,u)),pch=16)
     }
     if(type %in% c("log(OR)","mean","beta"))
@@ -237,7 +264,8 @@ centroidMethod <- function(input,
       points(input[1],mean(c(l,u)),pch=16)
     }
   }
-  #
+  
+  
   if(type=="OR") 
   {
     names(centroid) <- c("log(OR)","SE")
